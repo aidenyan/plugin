@@ -1,19 +1,20 @@
 package com.jimmy.excel.operation;
 
+import com.alibaba.fastjson.JSON;
 import com.jimmy.excel.exception.FileException;
 import com.jimmy.excel.exception.ReadIOException;
 import com.jimmy.excel.exception.StreamException;
-import org.apache.commons.lang.StringUtils;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import com.jimmy.excel.utils.ExcelCellOperationUtils;
+import com.jimmy.utils.BeanUtils;
+import com.jimmy.utils.ClassUtils;
+import com.jimmy.utils.StringUtils;
+import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
+import org.apache.poi.ss.usermodel.*;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.util.*;
 
 /**
  * @author : aiden
@@ -27,7 +28,7 @@ public class ExcelReadOperation {
     /**
      * 工作文件
      */
-    private XSSFWorkbook workbook;
+    private Workbook workbook;
 
     /**
      * 工作表
@@ -65,6 +66,7 @@ public class ExcelReadOperation {
             throw new FileException("the file path is blank");
         }
         File file = new File(filePath);
+        System.out.println(file.getAbsolutePath());
         if (!file.exists()) {
             throw new FileException("the file is not exists");
         }
@@ -95,9 +97,12 @@ public class ExcelReadOperation {
             return;
         }
         try {
-            workbook = new XSSFWorkbook(inputStream);
+            workbook = WorkbookFactory.create(inputStream);
+
         } catch (IOException e) {
             throw new ReadIOException(e);
+        } catch (InvalidFormatException e) {
+            e.printStackTrace();
         }
     }
 
@@ -141,7 +146,7 @@ public class ExcelReadOperation {
     }
 
     public boolean nextRow() {
-        return getLastedRowNum() > currentRow;
+        return getLastedRowNum() >= currentRow;
     }
 
     public boolean isExistsRow(int rowNum) {
@@ -179,8 +184,41 @@ public class ExcelReadOperation {
         /**
          * 进行转换
          */
+        Set<Integer> columnSet = columnMap.keySet();
+        List<Cell> cellList = null;
 
+
+        List<Field> fieldList = ClassUtils.getFieldList(tClass);
+        Map<String, Field> fieldMap = new HashMap<>();
+        fieldList.forEach(field -> fieldMap.put(field.getName(), field));
+        E target;
+        Field field;
+        while (nextRow()) {
+            cellList = getCurrentRowContent();
+            try {
+                target = tClass.newInstance();
+                for (Integer column : columnSet) {
+                    Cell cell = cellList.get(column);
+                    String filedName = columnMap.get(column);
+                    field = fieldMap.get(filedName);
+                    if (field.getType().getName().equals(String.class.getName())) {
+                        field.setAccessible(true);
+                        field.set(target,String.valueOf(ExcelCellOperationUtils.convertCell(cell)));
+                        System.out.println(JSON.toJSONString(target));
+                    }
+                }
+                targetList.add(target);
+            } catch (InstantiationException e) {
+                e.printStackTrace();
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
+
+        }
         return targetList;
     }
+
+
+
 
 }

@@ -14,6 +14,7 @@ public class FileException extends RuntimeException {
     private String message;
     private Throwable cause;
     public FileException(Throwable cause) {
+        super(cause);
         this.cause = cause;
         this.message = cause.getMessage();
     }

@@ -15,6 +15,7 @@ public class StreamException extends RuntimeException {
     private Throwable cause;
 
     public StreamException(Throwable cause) {
+        super(cause);
         this.cause = cause;
         this.message = cause.getMessage();
     }
@@ -24,6 +25,7 @@ public class StreamException extends RuntimeException {
     }
 
     public StreamException(String code, String message) {
+        super(message);
         this.code = code;
         this.message = message;
     }

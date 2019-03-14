@@ -22,10 +22,13 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="true" />
-        <module name="plugin" />
+        <module name="common" />
+        <module name="excel" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
+      <module name="common" target="1.8" />
+      <module name="excel" target="1.8" />
       <module name="plugin" target="1.8" />
     </bytecodeTargetLevel>
   </component>
