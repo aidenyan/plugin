@@ -1,11 +1,11 @@
 package com.jimmy.excel.operation;
 
-import com.alibaba.fastjson.JSON;
+import com.jimmy.excel.anno.CellProperty;
+import com.jimmy.excel.anno.CellPropertyArray;
 import com.jimmy.excel.exception.FileException;
 import com.jimmy.excel.exception.ReadIOException;
 import com.jimmy.excel.exception.StreamException;
 import com.jimmy.excel.utils.ExcelCellOperationUtils;
-import com.jimmy.utils.BeanUtils;
 import com.jimmy.utils.ClassUtils;
 import com.jimmy.utils.StringUtils;
 import org.apache.poi.openxml4j.exceptions.InvalidFormatException;
@@ -13,8 +13,8 @@ import org.apache.poi.ss.usermodel.*;
 
 import java.io.*;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author : aiden
@@ -23,8 +23,6 @@ import java.util.*;
  * @date : 2019/3/14/014
  */
 public class ExcelReadOperation {
-
-
     /**
      * 工作文件
      */
@@ -145,6 +143,12 @@ public class ExcelReadOperation {
         return resultList;
     }
 
+    public Map<Integer, Cell> mapCurrentRowContent() {
+        List<Cell> resultList = getCurrentRowContent();
+        return resultList.stream().collect(Collectors.toMap(Cell::getColumnIndex, cell -> cell));
+
+    }
+
     public boolean nextRow() {
         return getLastedRowNum() >= currentRow;
     }
@@ -161,6 +165,41 @@ public class ExcelReadOperation {
         openSheet();
         lastRow = sheet.getLastRowNum();
         return lastRow;
+    }
+
+    /**
+     * 读取文件中或者流当中所有的数据并转换成相应的对象
+     *
+     * @param startRow 从对几行进行开始
+     * @param tClass   对应的泛型的对象信息
+     * @param <E>      泛型
+     * @return List<返回的对象>
+     */
+    public <E> List<E> listAllContent(Class<E> tClass, Integer startRow, String groupName) {
+        String group = groupName == null ? "" : groupName;
+        List<Field> fieldList = ClassUtils.getFieldList(tClass);
+        Map<Integer, String> columnMap = new HashMap<>();
+        fieldList.forEach(field -> {
+            CellPropertyArray cellPropertyArray = field.getAnnotation(CellPropertyArray.class);
+            Set<Integer> columnSet = new HashSet<>();
+            if (cellPropertyArray != null) {
+                for (CellProperty cellProperty : cellPropertyArray.value()) {
+                    if (cellProperty.group().equals(group)) {
+                        columnSet.add(cellProperty.column());
+                        columnMap.put(cellProperty.column(), field.getName());
+                    }
+                }
+            }
+            CellProperty cellProperty = field.getAnnotation(CellProperty.class);
+            if (cellProperty != null) {
+                columnSet.add(cellProperty.column());
+                columnMap.put(cellProperty.column(), field.getName());
+            }
+            if (columnSet.size() > 1) {
+                throw new ReadIOException("the filed anno is error the cloumn size:" + columnSet.size() + " in the same group,filed:" + field.getName());
+            }
+        });
+        return listAllContent(columnMap, tClass, startRow);
     }
 
     /**
@@ -185,27 +224,24 @@ public class ExcelReadOperation {
          * 进行转换
          */
         Set<Integer> columnSet = columnMap.keySet();
-        List<Cell> cellList = null;
-
-
         List<Field> fieldList = ClassUtils.getFieldList(tClass);
         Map<String, Field> fieldMap = new HashMap<>();
         fieldList.forEach(field -> fieldMap.put(field.getName(), field));
         E target;
         Field field;
+        Map<Integer, Cell> cellMap;
         while (nextRow()) {
-            cellList = getCurrentRowContent();
+            cellMap = mapCurrentRowContent();
             try {
                 target = tClass.newInstance();
                 for (Integer column : columnSet) {
-                    Cell cell = cellList.get(column);
+                    Cell cell = cellMap.get(column);
+                    if (cell == null) {
+                        continue;
+                    }
                     String filedName = columnMap.get(column);
                     field = fieldMap.get(filedName);
-                    if (field.getType().getName().equals(String.class.getName())) {
-                        field.setAccessible(true);
-                        field.set(target,String.valueOf(ExcelCellOperationUtils.convertCell(cell)));
-                        System.out.println(JSON.toJSONString(target));
-                    }
+                    ExcelCellOperationUtils.setFiled(cell, field, target);
                 }
                 targetList.add(target);
             } catch (InstantiationException e) {
@@ -217,8 +253,6 @@ public class ExcelReadOperation {
         }
         return targetList;
     }
-
-
 
 
 }

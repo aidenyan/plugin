@@ -1,5 +1,6 @@
 package demo;
 
+import com.jimmy.excel.anno.CellProperty;
 import lombok.Data;
 
 /**
@@ -10,5 +11,6 @@ import lombok.Data;
  */
 @Data
 public class DataDemo {
+    @CellProperty(column = 0)
     private String result;
 }
