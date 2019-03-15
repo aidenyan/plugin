@@ -46,6 +46,9 @@ public class ExcelCellOperationUtils {
     public static void setFiled(Cell cell, Field field, Object target) throws IllegalAccessException {
         Object cellObj = convertCell(cell);
         Class<?> targetClass = field.getType();
+        /**
+         * 检查如果是基础类型，内容为空怎无法转换抛出异常
+         */
         if (baseClassList.contains(targetClass) && cellObj == null) {
             throw new ReadIOException(" the excel cell content is blank,the cell:[" + cell.getRowIndex() + "," + cell.getColumnIndex() + "],the target class:" + targetClass.getName() + ";cell class:" + Date.class.getName());
         }
@@ -61,7 +64,6 @@ public class ExcelCellOperationUtils {
         if (targetClass.equals(Character.class) || targetClass.equals(char.class)) {
             throw new ReadIOException(" the excel cell is format error,the cell:[" + cell.getRowIndex() + "," + cell.getColumnIndex() + "],the target class:" + targetClass.getName() + ";cell class:" + Date.class.getName());
         }
-
         if (targetClass.equals(Date.class)) {
             if (cellObj instanceof Date) {
                 field.setAccessible(true);
