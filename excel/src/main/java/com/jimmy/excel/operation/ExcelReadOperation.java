@@ -175,7 +175,31 @@ public class ExcelReadOperation {
      * @param <E>      泛型
      * @return List<返回的对象>
      */
-    public <E> List<E> listAllContent(Class<E> tClass, Integer startRow, String groupName) {
+    public <E> List<E> listAllContent(Class<E> tClass, Integer startRow) {
+        return listAllContent(tClass, null, startRow, null);
+    }
+
+    /**
+     * 读取文件中或者流当中所有的数据并转换成相应的对象
+     *
+     * @param startRow 从对几行进行开始
+     * @param tClass   对应的泛型的对象信息
+     * @param <E>      泛型
+     * @return List<返回的对象>
+     */
+    public <E> List<E> listAllContent(Class<E> tClass, Integer startRow, Integer endRow) {
+        return listAllContent(tClass, null, startRow, endRow);
+    }
+
+    /**
+     * 读取文件中或者流当中所有的数据并转换成相应的对象
+     *
+     * @param startRow 从对几行进行开始
+     * @param tClass   对应的泛型的对象信息
+     * @param <E>      泛型
+     * @return List<返回的对象>
+     */
+    public <E> List<E> listAllContent(Class<E> tClass, String groupName, Integer startRow, Integer endRow) {
         String group = groupName == null ? "" : groupName;
         List<Field> fieldList = ClassUtils.getFieldList(tClass);
         Map<Integer, String> columnMap = new HashMap<>();
@@ -199,7 +223,7 @@ public class ExcelReadOperation {
                 throw new ReadIOException("the filed anno is error the cloumn size:" + columnSet.size() + " in the same group,filed:" + field.getName());
             }
         });
-        return listAllContent(columnMap, tClass, startRow);
+        return listAllContent(columnMap, tClass, startRow, endRow);
     }
 
     /**
@@ -211,13 +235,16 @@ public class ExcelReadOperation {
      * @param <E>       泛型
      * @return List<返回的对象>
      */
-    public <E> List<E> listAllContent(Map<Integer, String> columnMap, Class<E> tClass, Integer startRow) {
+    public <E> List<E> listAllContent(Map<Integer, String> columnMap, Class<E> tClass, Integer startRow, Integer endRow) {
         if (columnMap == null || columnMap.keySet().size() == 0) {
             return null;
         }
         openSheet();
         if (startRow != null && startRow >= 0) {
             currentRow = startRow;
+        }
+        if (endRow == null) {
+            endRow = getLastedRowNum();
         }
         List<E> targetList = new ArrayList<>();
         /**
@@ -230,7 +257,7 @@ public class ExcelReadOperation {
         E target;
         Field field;
         Map<Integer, Cell> cellMap;
-        while (nextRow()) {
+        while (nextRow() && endRow >= currentRow) {
             cellMap = mapCurrentRowContent();
             try {
                 target = tClass.newInstance();

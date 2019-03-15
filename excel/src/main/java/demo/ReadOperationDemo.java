@@ -21,7 +21,7 @@ public class ReadOperationDemo {
         ExcelReadOperation excelReadOperation = ExcelReadOperation.getInstance(path);
         Map<Integer, String> columnMap = new HashMap<>();
         columnMap.put(0, "result");
-        List<DataDemo> result = excelReadOperation.listAllContent( DataDemo.class, 1,null);
+        List<DataDemo> result = excelReadOperation.listAllContent( DataDemo.class, 1,2);
         System.out.println(JSON.toJSONString(result));
     }
 }
